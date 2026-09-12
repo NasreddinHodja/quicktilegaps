@@ -47,7 +47,9 @@ Settings are stored in =~/.config/kwinrc= under =[Script-quicktilegaps]=, as =In
 
 * Install
 
-From inside the script directory:
+Available on the [[https://store.kde.org/p/2371140][KDE Store]].
+
+Or, from inside the script directory:
 
 #+begin_src sh
   kpackagetool6 --type KWin/Script --install .
