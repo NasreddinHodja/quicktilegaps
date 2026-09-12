@@ -13,11 +13,11 @@ Maximized windows get their own gap, which can be turned off on its own.
 
 * Intent
 
-KDE already has native gaps, but only for the custom layouts you draw in the tile editor. The tiling everybody actually uses by default gets nothing.
+KWin has built-in gaps, set with the Padding option in the tile editor, but they only apply to custom tile layouts. Windows placed with quick tiling, the default, get no gaps.
 
-The reason is not an oversight in the settings UI, it is structural. KWin builds the =QuickRootTile= and each of its eight children with padding hardcoded to zero (=src/tiles/quicktile.cpp=), and the =[Tiling] padding= setting is only ever pushed onto the custom root tile (=src/tiles/tilemanager.cpp=). That is true in every Plasma 6 release so far and on =master=, and there is no open merge request to change it.
+KWin builds the =QuickRootTile= and each of its eight children with padding hardcoded to zero (=src/tiles/quicktile.cpp=), and the tile editor's padding setting is only applied to the custom layout's root tile (=src/tiles/tilemanager.cpp=). This is the case in every Plasma 6 release up to 6.8 and on =master=. As of September 2026 there is no open merge request changing it.
 
-So this script gaps the windows KWin will not, and leaves custom layouts alone so their native padding keeps working.
+This script adds gaps to quick-tiled and maximized windows, and leaves windows in custom layouts alone so their native padding keeps working.
 
 * Configuration
 
@@ -47,10 +47,12 @@ Settings are stored in =~/.config/kwinrc= under =[Script-quicktilegaps]=, as =In
 
 * Install
 
-From inside the script directory:
+Available on the [[https://store.kde.org/p/2371140][KDE Store]].
+
+Or, from inside the script directory:
 
 #+begin_src sh
-  kpackagetool6 --type KWin/Script --install .
+kpackagetool6 --type KWin/Script --install .
 #+end_src
 
 Then enable it in System Settings → Window Management → KWin Scripts.
@@ -58,15 +60,14 @@ Then enable it in System Settings → Window Management → KWin Scripts.
 To update an install you already made:
 
 #+begin_src sh
-  kpackagetool6 --type KWin/Script --upgrade .
+kpackagetool6 --type KWin/Script --upgrade .
 #+end_src
-
-If you are working on the script, symlinking the source directory into =~/.local/share/kwin/scripts/quicktilegaps= works too. KWin caches scripts, so toggle the script off and on in System Settings after changing the code.
 
 * Requirements
 
 + Plasma 6.3 or later. =Window.maximizeMode= only became scriptable in 6.3; on 6.0 to 6.2 gaps for tiled windows would work but maximized windows would not be touched.
-+ Wayland
+
+Only tested on Wayland.
 
 * How it works
 
@@ -75,19 +76,20 @@ Every managed window is watched for =tileChanged=, =maximizedChanged= and =frame
 Two details do most of the work:
 
 + A window is only gapped when its frame still matches that rect exactly. Once inset it no longer matches, which is what keeps =frameGeometryChanged= from feeding back into itself, and it is also why a window you have resized by hand is left alone.
-+ Tile geometry is derived from the same =clientArea(MaximizeArea)= rect the script compares against, so deciding whether an edge touches the work area boundary or a neighbour is an exact test rather than a guess with a pixel tolerance.
++ Tile geometry is derived from the same =clientArea(MaximizeArea)= rect the script compares against, so whether a tile edge lies on the work area boundary is an exact comparison. Any other edge is treated as shared with a neighbour and gets half the inner gap.
 
 Quick tiles are told apart from custom ones by walking up to the topmost tile and comparing it against the tile editor's root for that output and desktop. Anything that is not that root belongs to the =QuickRootTile=, which scripts cannot reach by any other route.
 
 * Differences from similar scripts
 
-The existing gaps scripts predate KWin's tile API and reconstruct window layout themselves, by tracking which shortcut was pressed and computing screen fractions. That is where their bugs live: custom split ratios, multi-monitor setups and resized tiles all drift out of sync, and it takes several hundred lines and a dozen settings to paper over.
-
-This one reads =window.tile= and asks KWin what the layout is, so resized tiles, unusual split ratios, multiple outputs and per-desktop tile layouts are all handled without knowing they exist. It is about 150 lines with three settings.
-
-+ [[https://github.com/nclarius/tile-gaps][nclarius/tile-gaps]] ("Window Gaps") is the popular one, but it still calls =workspace.clientList()= and =clientAdded=, both removed in KWin 6, so it does not run on Plasma 6 at all. Its port issue has been open since March 2024.
-+ [[https://github.com/FredworkLemmas/kwin-tile-gaps][Interstitia]] is a maintained Plasma 6 fork of it, ported to the KWin 6 API but still built on the same geometry-guessing approach.
-+ Full tiling managers like [[https://github.com/zeroxoneafour/polonium][Polonium]] and [[https://github.com/peterfajdiga/karousel][Karousel]] have gaps, but they replace your window management wholesale. This script changes nothing about how tiling behaves.
++ [[https://github.com/nclarius/tile-gaps][nclarius/tile-gaps]] ("Window Gaps") calls =workspace.clientList()= and =clientAdded=, which were removed in KWin 6, so it does not run on Plasma 6. Its [[https://github.com/nclarius/tile-gaps/issues/23][port issue]] has been open since March 2024.
++ [[https://github.com/FredworkLemmas/kwin-tile-gaps][Interstitia]] is a fork of nclarius/tile-gaps ported to the Plasma 6 API. Compared to this script:
+  + It changes any normal, resizable window near a screen edge, another window, or a half or quarter line of the screen. This script only changes quick-tiled and maximized windows.
+  + It works out the layout from window positions, matched within a pixel tolerance. This script reads the tile KWin assigned to the window (=window.tile=).
+  + It does not tell windows in custom tile layouts apart from other windows. This script leaves them to KWin's own padding.
+  + With its maximized option on, it un-maximizes windows before resizing them. This script resizes them and they stay maximized.
+  + It has more settings: a gap per screen edge, floating panel adjustment, and an application include/exclude list.
++ [[https://github.com/peterfajdiga/karousel][Karousel]] has its own gap settings, but it is a tiling script that changes how windows are arranged. This script leaves tiling itself to KWin.
 
 * License
 
