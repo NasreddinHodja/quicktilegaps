@@ -22,7 +22,7 @@ jobs:
           fi
 
       - name: Build package
-        run: zip -r "quicktilegaps-${GITHUB_REF_NAME#v}.kwinscript" metadata.json contents LICENSES
+        run: zip -r "quicktilegaps-${GITHUB_REF_NAME#v}.kwinscript" metadata.json metadata.json.license README.org contents LICENSES
 
       - name: Create release
         env:
