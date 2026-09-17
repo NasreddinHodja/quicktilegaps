@@ -29,10 +29,12 @@ function loadConfig() {
 }
 
 function sameRect(a, b) {
-    return Math.round(a.x) === Math.round(b.x)
-        && Math.round(a.y) === Math.round(b.y)
-        && Math.round(a.width) === Math.round(b.width)
-        && Math.round(a.height) === Math.round(b.height);
+    // a committed frame lands a pixel or so off under fractional scaling
+    const tolerance = 2; 
+    return Math.abs(a.x - b.x) <= tolerance
+        && Math.abs(a.y - b.y) <= tolerance
+        && Math.abs(a.width - b.width) <= tolerance
+        && Math.abs(a.height - b.height) <= tolerance;
 }
 
 function inset(rect, left, top, right, bottom) {
@@ -126,14 +128,16 @@ function watch(window) {
     if (!window || !window.managed) {
         return;
     }
-    const regap = function () {
-        applyGap(window, false);
+    const placed = function () {
+        applyGap(window, true);
     };
-    window.tileChanged.connect(regap);
-    window.maximizedChanged.connect(regap);
-    window.frameGeometryChanged.connect(regap);
+    window.tileChanged.connect(placed);
+    window.maximizedChanged.connect(placed);
+    window.frameGeometryChanged.connect(function () {
+        applyGap(window, false);
+    });
 
-    // Forced, unlike the signal handlers. A window that an earlier run of this script
+    // Forced, like the placement handlers. A window that an earlier run of this script
     // already inset no longer matches its raw tile rect, so an unforced pass here would
     // skip every window that is currently gapped and the new gap sizes would only appear
     // on windows tiled from now on.
