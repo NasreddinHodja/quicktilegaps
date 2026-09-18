@@ -28,6 +28,9 @@ System Settings → Window Management → KWin Scripts → Quick Tile Gaps → c
 | Between tiled windows    |    8 px | Total space between two tiled windows sitting next to each other |
 | Around tiled windows     |    8 px | Space between a tiled window and the work area edge              |
 | Around maximized windows |    8 px | Space on all four sides of a maximized window, 0 to disable      |
+| Fullscreen windows       |     off | Keep gaps: the maximized gap instead of the whole screen         |
+
+By default a fullscreen window covers the whole screen, gaps and all, and gets its gaps back when it leaves fullscreen. "Keep gaps" makes fullscreen look like a gapped maximized window instead. A window kept off the screen edges this way cannot be scanned out directly, which costs power and latency in video and games, and a client that assumes a fullscreen window matches the screen size can lay itself out wrongly.
 
 Inner and outer are separate because they are visually different distances. A single value makes the channel between two windows read heavier than the margin at the screen edge, or the other way around, depending on which one you tune for.
 
@@ -43,7 +46,7 @@ Inner and outer are separate because they are visually different distances. A si
 
 "Between tiled windows" is the *total* gap, so each window gives up half of it on a shared edge. Set it equal to your tile editor padding to make quick tiling and custom layouts look identical; the tile editor uses the same half-on-shared-edges rule.
 
-Settings are stored in =~/.config/kwinrc= under =[Script-quicktilegaps]=, as =InnerGap=, =OuterGap= and =MaximizedGap=, if you would rather keep them in your dotfiles.
+Settings are stored in =~/.config/kwinrc= under =[Script-quicktilegaps]=, as =InnerGap=, =OuterGap=, =MaximizedGap= and =GapFullScreen=, if you would rather keep them in your dotfiles.
 
 * Install
 
@@ -71,12 +74,14 @@ Only tested on Wayland.
 
 * How it works
 
-Every managed window is watched for =tileChanged=, =maximizedChanged= and =frameGeometryChanged=. When one of those fires, the script asks KWin where the window *should* be, which is =tile.absoluteGeometry= for a tiled window or the maximize area for a maximized one, insets that rect, and writes it back.
+Every managed window is watched for =tileChanged=, =maximizedChanged=, =fullScreenChanged= and =frameGeometryChanged=. When one of those fires, the script asks KWin where the window *should* be, which is =tile.absoluteGeometry= for a tiled window or the maximize area for a maximized one, insets that rect, and writes it back.
 
 Two details do most of the work:
 
 + A window is only gapped when its frame still matches that rect exactly. Once inset it no longer matches, which is what keeps =frameGeometryChanged= from feeding back into itself, and it is also why a window you have resized by hand is left alone.
 + Tile geometry is derived from the same =clientArea(MaximizeArea)= rect the script compares against, so whether a tile edge lies on the work area boundary is an exact comparison. Any other edge is treated as shared with a neighbour and gets half the inner gap.
+
+KWin resizes a window's frame to the fullscreen rect before it flips the fullscreen flag, so a gap for the tiled or maximized state underneath can land first. The script corrects that on =fullScreenChanged=: it writes the fullscreen rect back, or applies the maximized gap when "Keep gaps" is on. While a window is fullscreen and "Keep gaps" is off, it is skipped entirely.
 
 Quick tiles are told apart from custom ones by walking up to the topmost tile and comparing it against the tile editor's root for that output and desktop. Anything that is not that root belongs to the =QuickRootTile=, which scripts cannot reach by any other route.
 

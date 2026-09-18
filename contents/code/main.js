@@ -8,16 +8,26 @@ const MaximizeFull = 3; // MaximizeVertical | MaximizeHorizontal
 let innerGap = 8;
 let outerGap = 8;
 let maximizedGap = 8;
+let gapFullScreen = false;
 
 function gapSetting(key, fallback) {
     const value = parseInt(readConfig(key, fallback), 10);
     return isNaN(value) || value < 0 ? fallback : value;
 }
 
+function boolSetting(key, fallback) {
+    const value = readConfig(key, fallback);
+    if (typeof value === "boolean") {
+        return value;
+    }
+    return value === "true" ? true : value === "false" ? false : fallback;
+}
+
 function loadConfig() {
     innerGap = gapSetting("InnerGap", 8);
     outerGap = gapSetting("OuterGap", 8);
     maximizedGap = gapSetting("MaximizedGap", 8);
+    gapFullScreen = boolSetting("GapFullScreen", false);
 }
 
 function sameRect(a, b) {
@@ -56,7 +66,14 @@ function customRoot(window) {
     return tiling ? tiling.rootTile : null;
 }
 
+function fullScreenArea(window) {
+    return workspace.clientArea(KWin.FullScreenArea, window);
+}
+
 function applyGap(window, force) {
+    if (window.fullScreen && !gapFullScreen) {
+        return;
+    }
     if (!window.output) {
         return;
     }
@@ -65,8 +82,13 @@ function applyGap(window, force) {
     const tile = window.tile;
     let base;
     let margins;
+    let placement;
 
-    if (tile) {
+    if (window.fullScreen) {
+        base = area;
+        margins = [maximizedGap, maximizedGap, maximizedGap, maximizedGap];
+        placement = fullScreenArea(window);
+    } else if (tile) {
         const root = topmost(tile);
         if (root === customRoot(window)) {
             return; // KWin pads custom layouts itself
@@ -86,15 +108,17 @@ function applyGap(window, force) {
             base.x + base.width >= area.x + area.width ? outerGap : half,
             base.y + base.height >= area.y + area.height ? outerGap : half
         ];
+        placement = base;
     } else if (window.maximizeMode === MaximizeFull) {
         base = area;
         margins = [maximizedGap, maximizedGap, maximizedGap, maximizedGap];
+        placement = base;
     } else {
         return;
     }
 
     // Anywhere else is a window gapped already or moved by hand.
-    if (!force && !sameRect(window.frameGeometry, base)) {
+    if (!force && !sameRect(window.frameGeometry, placement)) {
         return;
     }
 
@@ -113,6 +137,13 @@ function watch(window) {
     };
     window.tileChanged.connect(placed);
     window.maximizedChanged.connect(placed);
+    window.fullScreenChanged.connect(function () {
+        if (window.fullScreen && !gapFullScreen) {
+            window.frameGeometry = fullScreenArea(window);
+            return;
+        }
+        placed();
+    });
     window.frameGeometryChanged.connect(function () {
         applyGap(window, false);
     });

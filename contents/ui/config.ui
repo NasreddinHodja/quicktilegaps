@@ -94,7 +94,24 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0" colspan="2">
+   <item row="3" column="0">
+    <widget class="QLabel" name="gapFullScreenLabel">
+     <property name="text">
+      <string>Fullscreen windows:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QCheckBox" name="kcfg_GapFullScreen">
+     <property name="text">
+      <string>Keep gaps</string>
+     </property>
+     <property name="toolTip">
+      <string>Give a fullscreen window the same gap as a maximized one, instead of letting it cover the whole screen. Video and games lose direct scanout this way, and clients that expect a fullscreen window to match the screen size can lay out wrongly.</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="2">
     <widget class="QLabel" name="reloadNotice">
      <property name="text">
       <string>&lt;html&gt;&lt;body&gt;&lt;p&gt;&lt;i&gt;Due to a limitation in KWin, you must disable and re-enable the script for changes to take effect.&lt;/i&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -107,7 +124,7 @@
      </property>
     </widget>
    </item>
-   <item row="4" column="0">
+   <item row="5" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
